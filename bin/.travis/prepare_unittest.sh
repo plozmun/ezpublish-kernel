@@ -34,10 +34,15 @@ if [ "$DB" = "mysql" ] || [ "$DB" = "mariadb" ] ; then
     sudo mv /var/lib/mysql /mnt/ramdisk
     sudo ln -s /mnt/ramdisk/mysql /var/lib/mysql
     sudo start mysql
-    # Install test db
-    mysql -e "CREATE DATABASE IF NOT EXISTS testdb DEFAULT CHARACTER SET utf8mb4 DEFAULT COLLATE utf8mb4_unicode_ci;" -uroot
+    # Install test db (x2 for paratest usage)
+    mysql -e "CREATE DATABASE IF NOT EXISTS testdb_1 DEFAULT CHARACTER SET utf8mb4 DEFAULT COLLATE utf8mb4_unicode_ci;" -uroot
+    mysql -e "CREATE DATABASE IF NOT EXISTS testdb_2 DEFAULT CHARACTER SET utf8mb4 DEFAULT COLLATE utf8mb4_unicode_ci;" -uroot
 fi
-if [ "$DB" = "postgresql" ] ; then psql -c "CREATE DATABASE testdb;" -U postgres ; psql -c "CREATE EXTENSION pgcrypto;" -U postgres testdb ; fi
+if [ "$DB" = "postgresql" ] ; then
+    # Install test db (x2 for paratest usage)
+    psql -c "CREATE DATABASE testdb_1;" -U postgres ; psql -c "CREATE EXTENSION pgcrypto;" -U postgres testdb_1
+    psql -c "CREATE DATABASE testdb_2;" -U postgres ; psql -c "CREATE EXTENSION pgcrypto;" -U postgres testdb_2
+fi
 
 # Setup GitHub key to avoid api rate limit (pure auth read only key, no rights, for use by ezsystems repos only!)
 composer config -g github-oauth.github.com "d0285ed5c8644f30547572ead2ed897431c1fc09"

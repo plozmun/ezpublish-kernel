@@ -27,8 +27,6 @@ env:
     - COMPOSE_FILE="doc/docker/base-dev.yml:doc/docker/selenium.yml"
     # In order to specify extra flags like ignoring platform reqs, using only stable packages and so on.
     - COMPOSER_FLAGS=""
-    # For disabling on search engines tests who don't yet support it
-    - UNIT_TEST_BIN="vendor/bin/paratest -p 2 --runner=WrapperRunner"
 
 matrix:
   fast_finish: true
@@ -41,7 +39,7 @@ matrix:
     - php: 7.1
       env: BEHAT_OPTS="--profile=rest --tags=~@broken --suite=fullJson" SYMFONY_ENV=behat
     - php: 7.1
-      env: SOLR_VERSION="6.4.2" TEST_CONFIG="phpunit-integration-legacy-solr.xml" CUSTOM_CACHE_POOL="singleredis" CORES_SETUP="shared" SOLR_CONFIG="vendor/ezsystems/ezplatform-solr-search-engine/lib/Resources/config/solr/schema.xml vendor/ezsystems/ezplatform-solr-search-engine/lib/Resources/config/solr/custom-fields-types.xml vendor/ezsystems/ezplatform-solr-search-engine/lib/Resources/config/solr/language-fieldtypes.xml" UNIT_TEST_BIN="vendor/bin/phpunit"
+      env: SOLR_VERSION="6.4.2" TEST_CONFIG="phpunit-integration-legacy-solr.xml" CUSTOM_CACHE_POOL="singleredis" CORES_SETUP="shared" SOLR_CONFIG="vendor/ezsystems/ezplatform-solr-search-engine/lib/Resources/config/solr/schema.xml vendor/ezsystems/ezplatform-solr-search-engine/lib/Resources/config/solr/custom-fields-types.xml vendor/ezsystems/ezplatform-solr-search-engine/lib/Resources/config/solr/language-fieldtypes.xml"
     - php: 7.1
       env: TEST_CONFIG="phpunit-integration-legacy.xml" DB="postgresql" DATABASE="pgsql://postgres@localhost/testdb"
     - php: 7.1
@@ -53,7 +51,7 @@ matrix:
     - php: 7.2
       env: TEST_CONFIG="phpunit.xml"
     - php: 7.2
-      env: ELASTICSEARCH_VERSION="1.4.2" TEST_CONFIG="phpunit-integration-legacy-elasticsearch.xml" UNIT_TEST_BIN="vendor/bin/phpunit"
+      env: ELASTICSEARCH_VERSION="1.4.2" TEST_CONFIG="phpunit-integration-legacy-elasticsearch.xml"
 # 7.3
     # Temp: Need to use --ignore-platform-reqs due to: https://github.com/FriendsOfPHP/PHP-CS-Fixer/issues/3697
     - php: 7.3
@@ -93,9 +91,9 @@ install:
   - if [ "$TEST_CONFIG" = "phpunit-integration-legacy-elasticsearch.xml" ] ; then ./bin/.travis/init_elasticsearch.sh ; fi
   - if [ "$TEST_CONFIG" = "phpunit-integration-legacy-solr.xml" ] ; then ./vendor/ezsystems/ezplatform-solr-search-engine/bin/.travis/init_solr.sh; fi
 
-# execute phpunit (using paratest to make sure config is valid for it) or behat as the script command
+# execute phpunit or behat as the script command
 script:
-  - if [ "$TEST_CONFIG" != "" ] ; then php -d date.timezone=$TEST_TIMEZONE -d memory_limit=-1 $UNIT_TEST_BIN -c $TEST_CONFIG; fi
+  - if [ "$TEST_CONFIG" != "" ] ; then php -d date.timezone=$TEST_TIMEZONE -d memory_limit=-1 vendor/bin/phpunit -c $TEST_CONFIG ; fi
   - if [ "$BEHAT_OPTS" != "" ] ; then cd "$HOME/build/ezplatform"; docker-compose exec --user www-data app sh -c "bin/behat $BEHAT_OPTS" ; fi
   - if [ "$REST_TEST_CONFIG" != "" ] ; then cd "$HOME/build/ezplatform"; docker-compose exec --user www-data app sh -c "php -d date.timezone=$TEST_TIMEZONE -d memory_limit=-1 bin/phpunit -v vendor/ezsystems/ezpublish-kernel/eZ/Bundle/EzPublishRestBundle/Tests/Functional"  ; fi
 

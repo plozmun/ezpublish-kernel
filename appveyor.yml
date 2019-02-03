@@ -42,6 +42,5 @@ test_script:
     - cd c:\projects\ezpublish-kernel
     - copy /Y config.php-DEVELOPMENT config.php
     - SET X=0
-    - vendor/bin/phpunit --colors=never -c phpunit.xml || SET X=!errorlevel!
-    - vendor/bin/phpunit --colors=never -c phpunit-integration-legacy.xml || SET X=!errorlevel!
+    - composer test --ansi || SET X=!errorlevel!
     - exit %X%

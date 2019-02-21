@@ -31,9 +31,10 @@ class PersistenceCacheCollector extends DataCollector
     public function collect(Request $request, Response $response, \Exception $exception = null)
     {
         $this->data = [
-            'count' => $this->logger->getCount(),
+            'stats' => $this->logger->getStats(),
             'calls_logging_enabled' => $this->logger->isCallsLoggingEnabled(),
             'calls' => $this->logger->getCalls(),
+            'cached' => $this->logger->getCached(),
             'handlers' => $this->logger->getLoadedUnCachedHandlers(),
         ];
     }
@@ -46,11 +47,25 @@ class PersistenceCacheCollector extends DataCollector
     /**
      * Returns call count.
      *
+     * @deprecaterd since 7.5, use getStats().
+     *
      * @return int
      */
     public function getCount()
     {
-        return $this->data['count'];
+        return $this->data['stats']['calls'] + $this->data['stats']['misses'];
+    }
+
+    /**
+     * Returns stats on Persistance cache usage.
+     *
+     * @since 7.5
+     *
+     * @return int[<string>]
+     */
+    public function getStats()
+    {
+        return $this->data['stats'];
     }
 
     /**
@@ -66,29 +81,74 @@ class PersistenceCacheCollector extends DataCollector
     }
 
     /**
-     * Returns calls.
+     * Returns all calls.
      *
      * @return array
      */
     public function getCalls()
     {
-        $calls = [];
-        foreach ($this->data['calls'] as $call) {
+        return $this->getCallData(array_merge($this->data['calls'], $this->data['cached']));
+    }
+
+    private function getCallData(array $data): array
+    {
+        if (empty($data)) {
+            return [];
+        }
+
+        $calls = $count = [];
+        foreach ($data as $call) {
+            $callArguments = $this->simplifyCallArguments($call['arguments']);
+            $hash = hash('md5', $call['method'] . $callArguments);
+            if (isset($calls[$hash])) {
+                $calls[$hash]['traces'][$call['type']][] = implode(', ', $call['trace']);
+                ++$calls[$hash]['count'];
+                ++$count[$hash];
+
+                continue;
+            }
+
             list($class, $method) = explode('::', $call['method']);
             $namespace = explode('\\', $class);
             $class = array_pop($namespace);
-            $calls[] = array(
+            $calls[$hash] = [
                 'namespace' => $namespace,
                 'class' => $class,
                 'method' => $method,
-                'arguments' => empty($call['arguments']) ?
-                    '' :
-                    preg_replace(array('/^array\s\(\s/', '/,\s\)$/'), '', var_export($call['arguments'], true)),
-                'trace' => implode(', ', $call['trace']),
-            );
+                'arguments' => $callArguments,
+                'traces' => [],
+                'count' => 1,
+            ];
+            $calls[$hash]['traces'][$call['type']][] = implode(', ', $call['trace']);
+            $count[$hash] = 1;
         }
+        unset($data);
+
+        array_multisort($count, SORT_DESC, $calls);
 
         return $calls;
+    }
+
+    private function simplifyCallArguments(array $arguments): string
+    {
+        $string = '';
+        foreach ($arguments as $key => $value) {
+            if (!empty($string)) {
+                $string .= ', ';
+            }
+
+            if (!is_numeric($key)) {
+                $string .= $key . ':';
+            }
+
+            if (is_array($value)) {
+                $string .= '[' . implode(',', $value) . ']';
+            } else {
+                $string .= $value;
+            }
+        }
+
+        return $string;
     }
 
     /**

@@ -100,10 +100,10 @@ class PersistenceLoggerTest extends TestCase
         $method = __CLASS__ . '::testLogCall';
         $this->assertEquals(
             [
-                ['method' => $method, 'arguments' => [], 'trace' => ['PHPUnit\Framework\TestCase->runTest()']],
-                ['method' => $method, 'arguments' => [], 'trace' => ['PHPUnit\Framework\TestCase->runTest()']],
-                ['method' => $method, 'arguments' => [], 'trace' => ['PHPUnit\Framework\TestCase->runTest()']],
-                ['method' => $method, 'arguments' => [33], 'trace' => ['PHPUnit\Framework\TestCase->runTest()']],
+                ['method' => $method, 'arguments' => [], 'trace' => ['PHPUnit\Framework\TestCase->runTest()'], 'type' => 'call'],
+                ['method' => $method, 'arguments' => [], 'trace' => ['PHPUnit\Framework\TestCase->runTest()'], 'type' => 'call'],
+                ['method' => $method, 'arguments' => [], 'trace' => ['PHPUnit\Framework\TestCase->runTest()'], 'type' => 'call'],
+                ['method' => $method, 'arguments' => [33], 'trace' => ['PHPUnit\Framework\TestCase->runTest()'], 'type' => 'call'],
             ],
             $logger->getCalls()
         );

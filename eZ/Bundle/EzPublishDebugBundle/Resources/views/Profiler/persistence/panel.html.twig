@@ -1,37 +1,69 @@
-<h3 title="Calls made to SPI\Persistence, persistance layer beneath Repository, which where not cached in SPI\Persistence\Cache">
-    Uncached Persistence\Cache calls
+<h3 title="Calls made to SPI\Persistence, persistance layer beneath Repository">
+    Persistence\Cache calls
 </h3>
 
-<p class="text-small text-muted">TIP: This can represent both cold cache, and calls to methods which has not been made to be cached <em>(yet)</em>. Make sure to reload a few times to warmup cache in order to only see the latter.</p>
+{% set stats = collector.stats %}
 
 <table>
     <tr>
-        <th>Total Uncached calls:</th>
-        <td>{{ collector.count }}</td>
+        <th>Uncached method calls:</th>
+        <td>{{ stats.calls }}</td>
+    </tr>
+    <tr>
+        <th>Cached method calls:</th>
+        <td>from memory: {{ stats.memory }},  from cache: {{ stats.hits }}, misses: {{ stats.misses }}</td>
     </tr>
     {% if collector.handlerscount %}
         <tr>
-            <th>Uncached SPI handlers(times loaded):</th>
+            <th>Uncached SPI handlers:</th>
             <td>{{ collector.handlers|join(', ') }}</td>
         </tr>
     {% endif %}
 </table>
 
 {% if collector.callsLoggingEnabled %}
+
+    <h4 title="Calls made to SPI\Persistence">
+        Logged calls to Persistence\Cache
+    </h4>
+
+    <p class="text-small text-muted">
+        TIP: Traces appear in three types: Uncached "call", and cached calls with "miss" & "hit". Misses <em>can</em> represent cold cache, make sure to reload corresponding page to warmup cache.<br>
+        NOTE: Traces for "memory" lookups are not logged to save on PHP memory consumption.
+    </p>
+
     <table>
         <tr>
-            <th>Class</th>
-            <th>Method</th>
+            <th>Class::method</th>
             <th>Arguments</th>
-            <th title="Simplified trace">Trace</th>
+            <th title="Numer of times called">#</th>
+            <th title="Simplified trace">Traces</th>
         </tr>
+
         {% for call in collector.calls %}
             <tr>
-                <td>{{ call.class }}</td>
-                <td>{{ call.method }}</td>
+                <td>{{ call.class }}<wbr>::{{ call.method }}</td>
                 <td>{{ call.arguments }}</td>
-                <td class="text-small text-muted">{{ call.trace }}</td>
+                <td>{{ call.count }}</td>
+                <td>
+                    <table style="margin: 0; box-shadow: none;">
+                    {% for key, traces  in call.traces %}
+                        <tr>
+                            <td class="text-small text-muted">{{ key }}</td>
+                            <td class="text-small text-muted">
+                                {% for trace in traces %}
+                                    {{ trace }}
+                                    {% if not loop.last %}<br /><br />{% endif %}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </table>
+                </td>
             </tr>
         {% endfor %}
     </table>
+
+{% else %}
+    <p class="text-small text-muted">TIP: Call logging is disabled by default as it consumes considerably memory, enable <code>@TODO</code> in order to see calls made and trace for where the calls comes from.</p>
 {% endif %}

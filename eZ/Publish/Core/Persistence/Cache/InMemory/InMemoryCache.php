@@ -191,9 +191,9 @@ class InMemoryCache
     private function vacuum(): void
     {
         // Vacuuming cache in bulk, clearing the 33% oldest cache values
-        $this->cache = \array_slice($this->cache, \floor($this->limit / 3));
+        $this->cache = \array_slice($this->cache, (int) ($this->limit / 3));
 
-        // Cleanup secondary index and cache time
+        // Cleanup secondary index and cache time for missing primary keys
         foreach ($this->cacheIndex as $index => $key) {
             if (!isset($this->cache[$key])) {
                 unset($this->cacheIndex[$index], $this->cacheTime[$key]);

@@ -30,7 +30,7 @@ class InMemoryCacheTest extends TestCase
 
         $this->cache = new InMemoryCache(
             3.0,
-            6
+            8
         );
     }
 
@@ -152,6 +152,8 @@ class InMemoryCacheTest extends TestCase
         $this->cache->setMulti([$obj], static function ($o) { return ['fourth']; });
         $this->cache->setMulti([$obj], static function ($o) { return ['fifth']; });
         $this->cache->setMulti([$obj], static function ($o) { return ['sixth']; });
+        $this->cache->setMulti([$obj], static function ($o) { return ['seventh']; });
+        $this->cache->setMulti([$obj], static function ($o) { return ['eight']; });
 
         $this->assertNull($this->cache->get('first'));
         $this->assertNull($this->cache->get('second'));
@@ -159,51 +161,9 @@ class InMemoryCacheTest extends TestCase
         $this->assertSame($obj, $this->cache->get('fourth'));
         $this->assertSame($obj, $this->cache->get('fifth'));
         $this->assertSame($obj, $this->cache->get('sixth'));
+        $this->assertSame($obj, $this->cache->get('seventh'));
+        $this->assertSame($obj, $this->cache->get('eight'));
     }
-
-    /**
-     * @dataProvider providerForInvalidation
-     *
-    public function testCacheClearing(string $method, $argument, int $expectedCount)
-    {
-        $this->innerCacheMock
-            ->expects($this->exactly($expectedCount))
-            ->method('getItem')
-            ->with('first')
-            ->willReturn($this->getCacheItem('first', ['my_tag']));
-
-        $this->innerCacheMock
-            ->expects($this->never())
-            ->method('getItems')
-            ->with(['first']);
-
-        // should only lookup once
-        $this->cache->getItem('first');
-        $this->cache->getItem('first');
-        iterator_to_array($this->cache->getItems(['first']));
-
-        // invalidate it
-        $this->cache->$method($argument);
-
-        // again, should only lookup once
-        $this->cache->getItem('first');
-        $this->cache->getItem('first');
-        iterator_to_array($this->cache->getItems(['first']));
-    }
-
-    public function providerForInvalidation(): array
-    {
-        return [
-            ['deleteItem', 'first', 2],
-            ['deleteItems', ['first'], 2],
-            ['invalidateTags', ['my_tag'], 2],
-            ['clear', null, 2],
-            // negative cases
-            ['deleteItem', 'second', 1],
-            ['deleteItems', ['second'], 1],
-            ['invalidateTags', ['some_other_tag'], 1],
-        ];
-    }*/
 }
 
 namespace eZ\Publish\Core\Persistence\Cache\InMemory;

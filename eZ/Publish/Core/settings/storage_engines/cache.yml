@@ -25,9 +25,9 @@ parameters:
     ezpublish.spi.persistence.cache.inmemory.metadata.ttl: 3.0
     ezpublish.spi.persistence.cache.inmemory.metadata.limit: 100
     ezpublish.spi.persistence.cache.inmemory.metadata.enable: true
-    #ezpublish.spi.persistence.cache.inmemory.content.ttl: 0.3
-    #ezpublish.spi.persistence.cache.inmemory.content.limit: 50
-    #ezpublish.spi.persistence.cache.inmemory.content.enable: false
+    #ezpublish.spi.persistence.cache.inmemory.burst.ttl: 0.3
+    #ezpublish.spi.persistence.cache.inmemory.burst.limit: 50
+    #ezpublish.spi.persistence.cache.inmemory.burst.enable: false
 
 services:
     ezpublish.cache_pool:
@@ -54,13 +54,15 @@ services:
         - "%ezpublish.spi.persistence.cache.inmemory.metadata.limit%"
         - "%ezpublish.spi.persistence.cache.inmemory.metadata.enable%"
 
-    # If we add in-memory cache for content it should be separate instance with shorter ttl and limit, maybe also disabled by default
-    #ezpublish.spi.persistence.cache.inmemory.content:
+    # If we add in-memory cache for content it should be separate instance with shorter ttl and limit.
+    #   (Alternative would be to just cache content-info and location lookups, and not cache full content or version
+    #    lookups. Thus somewhat safely be able to place it in metadata pool, with maybe 200 as default limit).
+    #ezpublish.spi.persistence.cache.inmemory.burst:
     #  class: eZ\Publish\Core\Persistence\Cache\InMemory\InMemoryCache
     #  arguments:
-    #    - "%ezpublish.spi.persistence.cache.inmemory.content.ttl%"
-    #    - "%ezpublish.spi.persistence.cache.inmemory.content.limit%"
-    #    - "%ezpublish.spi.persistence.cache.inmemory.content.enable%"
+    #    - "%ezpublish.spi.persistence.cache.inmemory.burst.ttl%"
+    #    - "%ezpublish.spi.persistence.cache.inmemory.burst.limit%"
+    #    - "%ezpublish.spi.persistence.cache.inmemory.burst.enable%"
 
 
     # SPI Persistence Cache Handlers, incl abstracts

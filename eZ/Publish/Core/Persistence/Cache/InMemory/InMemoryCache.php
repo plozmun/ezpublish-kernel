@@ -64,7 +64,7 @@ class InMemoryCache
     protected static $globalCacheExpiry;
 
     /**
-     * Language Cache constructor.
+     * In Memory Cache constructor.
      *
      * @param float $ttl Seconds for the cache to live as a float, by default 0.3 (300 milliseconds)
      * @param int $limit Limit for values to keep in cache, by default 100 cache values (per pool instance).

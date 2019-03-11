@@ -131,7 +131,7 @@ abstract class AbstractInMemoryHandler
      * @return object
      */
     final protected function getListCacheValue(
-        $key,
+        string $key,
         callable $backendLoader,
         callable $cacheTagger,
         callable $cacheIndexes,

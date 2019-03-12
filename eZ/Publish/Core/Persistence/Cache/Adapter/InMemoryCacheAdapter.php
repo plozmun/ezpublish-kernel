@@ -10,8 +10,7 @@ declare(strict_types=1);
 
 namespace eZ\Publish\Core\Persistence\Cache\Adapter;
 
-use eZ\Publish\SPI\Persistence\Content;
-use eZ\Publish\SPI\Variation\Values\Variation;
+
 use Symfony\Component\Cache\Adapter\TagAwareAdapterInterface;
 use Psr\Cache\CacheItemInterface;
 
@@ -21,29 +20,16 @@ final class InMemoryCacheAdapter implements TagAwareAdapterInterface
      * Default limits to in-memory cache usage, max objects cached and max ttl to live in-memory.
      */
     private const LIMIT = 100;
-    private const TTL = 10;
+    private const TTL = 500;
 
     /**
-     * Indication of content classes for cache discrimination.
-     *
-     * By design we prefer to keep meta info (type, sections, ..) in cache for as long as possible and rather cleanup
-     * cache representing content when we need to vacuum the cache (when reaching limits) first.
-     *
-     * Reason for that is:
-     * - meta data more likely to be attempted to be loaded again
-     * - content more likely to get updates more frequently
-     *
-     * So for those reasons content in-memory cache only aims to cache content for short bursts where code typically
-     * deals with a given content before it moves on to the next, while keeping meta cache around for a bit longer.
+     * @TODO Change to rather be whitelist in jected as argument, this is purely simplest way to see how much stuff gets
+     *       cached if we allow everything byt content to be cached.
+     * This matches:
+     * - ez-content-${contentId}${versionKey}-${translationsKey}
+     * - ez-content-${contentId}-version-list
      */
-    private const CONTENT_CLASSES = [
-        Content::class,
-        Content\ContentInfo::class,
-        Content\Location::class, // Will also match Content\Location\Trashed
-        Content\VersionInfo::class,
-        Content\Relation::class,
-        Variation::class,
-    ];
+    private const BLACK_LIST = '/^ez-content-\d+-';
 
     /**
      * @var \Symfony\Component\Cache\CacheItem[] Cache of cache items by their keys.
@@ -66,7 +52,7 @@ final class InMemoryCacheAdapter implements TagAwareAdapterInterface
     private $limit;
 
     /**
-     * @var int
+     * @var float
      */
     private $ttl;
 
@@ -74,7 +60,7 @@ final class InMemoryCacheAdapter implements TagAwareAdapterInterface
     {
         $this->pool = $pool;
         $this->limit = $limit;
-        $this->ttl = $ttl;
+        $this->ttl = $ttl / 1000;
     }
 
     public function getItem($key)
@@ -189,52 +175,30 @@ final class InMemoryCacheAdapter implements TagAwareAdapterInterface
      */
     private function saveCacheHitsInMemory(array $items): void
     {
-        // Skip if empty
-        if (empty($items)) {
-            return;
-        }
-
         // If items accounts for more then 20% of our limit, assume it's bulk content load and skip saving in-memory
         if (\count($items) >= $this->limit / 5) {
             return;
         }
 
-        // Will we stay clear of the limit? If so return early
-        if (\count($items) + \count($this->cacheItems) < $this->limit) {
-            $this->cacheItems += $items;
-            $this->cacheItemsTS += \array_fill_keys(\array_keys($items), \time());
+        // Skips items if they match BLACK_LIST pattern
+        foreach ($items as $key => $item) {
+            if (preg_match(self::BLACK_LIST, $key)) {
+                unset($items[$key]);
+            }
+        }
 
+        // Skip if empty
+        if (empty($items)) {
             return;
         }
 
-        // # Vacuuming cache in bulk so we don't end up doing this all the time
-        // 1. Discriminate against content cache, remove up to 1/3 of max limit starting from oldest items
-        $removeCount = 0;
-        $removeTarget = \floor($this->limit / 3);
-        foreach ($this->cacheItems as $key => $item) {
-            $cache = $item->get();
-            foreach (self::CONTENT_CLASSES as $className) {
-                if ($cache instanceof $className) {
-                    unset($this->cacheItems[$key]);
-                    ++$removeCount;
-
-                    break;
-                }
-            }
-
-            if ($removeCount >= $removeTarget) {
-                break;
-            }
-        }
-
-        // 2. Does cache still exceed the 66% of limit? if so remove everything above 66%
-        // NOTE: This on purpose keeps the oldest cache around, getValidInMemoryCacheItems() handles ttl checks on that
-        if (\count($this->cacheItems) >= $this->limit / 1.5) {
-            $this->cacheItems = \array_slice($this->cacheItems, 0, \floor($this->limit / 1.5));
+        // Will we stay clear of the limit? If so remove clearing the 33% oldest cache values
+        if (\count($items) + \count($this->cacheItems) >= $this->limit) {
+            $this->cacheItems = \array_slice($this->cacheItems, (int) ($this->limit / 3));
         }
 
         $this->cacheItems += $items;
-        $this->cacheItemsTS += \array_fill_keys(\array_keys($items), \time());
+        $this->cacheItemsTS += \array_fill_keys(\array_keys($items), \microtime(true));
     }
 
     /**
@@ -246,7 +210,7 @@ final class InMemoryCacheAdapter implements TagAwareAdapterInterface
     public function getValidInMemoryCacheItems(array $keys = [], array &$missingKeys = []): array
     {
         // 1. Validate TTL and remove items that have exceeded it (on purpose not prefixed for global scope, see tests)
-        $expiredTime = time() - $this->ttl;
+        $expiredTime = \microtime(true) - $this->ttl;
         foreach ($this->cacheItemsTS as $key => $ts) {
             if ($ts <= $expiredTime) {
                 unset($this->cacheItemsTS[$key]);

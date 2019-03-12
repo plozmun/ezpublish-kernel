@@ -70,9 +70,9 @@ class InMemoryCache
      * @param int $limit Limit for values to keep in cache, by default 100 cache values (per pool instance).
      * @param bool $enabled For use by configuration to be able to disable or enable depending on needs.
      */
-    public function __construct(float $ttl = 0.3, int $limit = 100, bool $enabled = true)
+    public function __construct(int $ttl = 300, int $limit = 100, bool $enabled = true)
     {
-        $this->ttl = $ttl;
+        $this->ttl = $ttl / 1000;
         $this->limit = $limit;
         $this->enabled = $enabled;
     }

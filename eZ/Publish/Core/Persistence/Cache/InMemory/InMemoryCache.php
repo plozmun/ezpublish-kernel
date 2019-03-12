@@ -58,12 +58,6 @@ class InMemoryCache
     private $cacheIndex = [];
 
     /**
-     * @var float|null Micro timestamp with time clear($global=true) has been called to synchronize across cache pools.
-     */
-    private $cacheExpiryTime;
-    protected static $globalCacheExpiry;
-
-    /**
      * In Memory Cache constructor.
      *
      * @param float $ttl Seconds for the cache to live as a float, by default 0.3 (300 milliseconds)
@@ -87,14 +81,6 @@ class InMemoryCache
     public function get(string $key)
     {
         if ($this->enabled === false) {
-            return null;
-        }
-
-        // Check for global expiry change, if the case clear cache
-        if ($this->cacheExpiryTime !== self::$globalCacheExpiry) {
-            $this->clear();
-            $this->cacheExpiryTime = self::$globalCacheExpiry;
-
             return null;
         }
 
@@ -128,7 +114,6 @@ class InMemoryCache
         }
 
         $time = microtime(true);
-
         // if set add objects to cache on list index (typically a "all" key)
         if ($listIndex) {
             $this->cache[$listIndex] = $objects;
@@ -174,13 +159,10 @@ class InMemoryCache
     /**
      * Deletes all cache in the in-memory pool.
      */
-    public function clear(bool $global = false): void
+    public function clear(): void
     {
         // On purpose does not check if enabled, in case of several instances we allow clearing cache
         $this->cache = $this->cacheIndex = $this->cacheTime = [];
-        if ($global) {
-            $this->cacheExpiryTime = self::$globalCacheExpiry = microtime(true);
-        }
     }
 
     /**
